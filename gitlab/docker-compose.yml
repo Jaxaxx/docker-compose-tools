@@ -1,0 +1,20 @@
+version: '3.9'
+services:
+    gitlab:
+      image: 'gitlab/gitlab-ce'
+      container_name: "gitlab"
+      restart: always
+      hostname: 'gitlab'
+      environment:
+        TZ: 'Asia/Shanghai'
+        GITLAB_OMNIBUS_CONFIG: |
+          external_url 'http://gitlab.3hoursedu.cn'
+          gitlab_rails['gitlab_shell_ssh_port'] = 220
+      ports:
+        - '8082:80'
+        - '220:22'
+      volumes:
+        - ./config:/etc/gitlab
+        - ./data:/var/opt/gitlab
+        - ./logs:/var/log/gitlab
+

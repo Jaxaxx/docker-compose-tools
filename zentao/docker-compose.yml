@@ -1,0 +1,18 @@
+version: "3" 
+services:
+  zentao:
+    image: easysoft/zentao:latest
+    container_name: zentao
+    restart: always
+    ports:
+      - 8081:80
+    networks:
+      - custom_net
+    volumes:
+      - ./data:/www/zentaopms
+      - ./mysql:/var/lib/mysql
+
+networks:
+  custom_net:
+    external: 
+      name: mynetwork

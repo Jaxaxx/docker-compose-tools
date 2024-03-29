@@ -1,0 +1,23 @@
+version: '3.3'
+services:
+  jenkins:
+    image: jenkins/jenkins
+    restart: always
+    container_name: jenkins
+    user: root
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/bin/docker
+      - ./data:/var/jenkins_home
+      - ./sources.list:/etc/apt/sources.list
+    ports:
+      - "8088:8080"
+    networks:
+      - custom_net
+
+networks:
+  custom_net:
+    external: 
+      name: mynetwork

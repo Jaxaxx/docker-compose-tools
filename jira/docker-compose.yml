@@ -1,0 +1,18 @@
+version: '3'
+services:
+  jira:
+    image: atlassian/jira-software
+    container_name: jira
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/var/atlassian/application-data/
+      - ./mysql-connector-java-8.0.20.jar:/opt/atlassian/jira/lib/mysql-connector-java-8.0.20.jar
+    networks:
+      - custom_net
+
+networks:
+  custom_net:
+    external: 
+      name: mynetwork

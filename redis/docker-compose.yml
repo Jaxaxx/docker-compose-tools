@@ -1,0 +1,21 @@
+version: '3.9'
+services:
+  redis:
+    image: redis:6.2.5
+    container_name: redis
+    volumes:
+      - ./data:/data
+      - ./conf/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./logs:/logs
+    command: ["redis-server","/usr/local/etc/redis/redis.conf"]
+    ports:
+      - 6399:6379
+    environment:
+      - TZ="Asia/Shanghai"
+    networks:
+      - custom_net
+
+networks:
+  custom_net:
+    external:
+      name: mynetwork

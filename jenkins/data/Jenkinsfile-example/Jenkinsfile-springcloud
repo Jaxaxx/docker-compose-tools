@@ -1,0 +1,99 @@
+pipeline {
+  agent any
+  environment {
+    // 运行环境变量
+	JAVA_HOME = '/var/jenkins_home/environment/jdk1.8.0_351'
+    NODE_HOME = '/var/jenkins_home/environment/node-v14.16.0-linux-x64'
+    M2_HOME = '/var/jenkins_home/environment/apache-maven-3.8.6'
+	PATH = "PATH+EXTRA=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin/:$JAVA_HOME/bin/:$M2_HOME/bin/:$NODE_HOME/bin/"
+	// 自定义的环境变量
+	DOCKER_HUB_URL = 'https://registry-vpc.cn-hangzhou.aliyuncs.com'
+	DOCKER_HUB_REPO = "registry-vpc.cn-hangzhou.aliyuncs.com"
+    DOCKER_HUB_REPO_NAMESPACE = "jax-"    // 在阿里云镜像仓库是以jax-dev jax-test这样的方式命名 所以在如下使用的使用就只凭借ENV的值
+  }
+  parameters {
+	gitParameter branchFilter: 'origin/(.*)', defaultValue: 'master', description: '选择分支', name: 'BRANCH', type: 'PT_BRANCH'
+	choice(choices: ['yhy-api','yhy-gateway','yhy-auth','yhy-api-consume','yhy-api-produce'], description: '镜像名称', name: 'PROJECT_NAME')
+	choice(choices: ['dev','uat'], description: '环境', name: 'ENV')
+  }
+  stages {
+	stage('init workspace') {
+		steps {
+			cleanWs();
+		}
+	}
+	stage('git checkout') {
+	  steps {
+		git branch: "${params.BRANCH}", credentialsId: 'gitee', url: 'https://gitee.com/haughty945/yhy-demo.git'
+	  }
+	}
+	stage('mvn clean package') {
+	  steps {
+		sh 'mvn clean package'
+	  }
+	}
+	stage('copy files required for docker build') {
+	  steps {
+		dir("${PROJECT_NAME}") {
+			sh "cp -r -f /var/jenkins_home/template/docker-java/* ./"
+			sh "sed -i 's/{{env}}/${ENV}/g' Dockerfile"
+			sh "sed -i 's/{{serverName}}/${PROJECT_NAME}/g' docker-compose.yml"
+			sh "sed -i 's/{{repoUrl}}/${DOCKER_HUB_REPO}/g' docker-compose.yml"
+			sh "sed -i 's/{{repoNamespace}}/${DOCKER_HUB_REPO_NAMESPACE}${ENV}/g' docker-compose.yml"
+			sh "sed -i 's/{{repoEnv}}/${ENV}/g' docker-compose.yml"
+			sh "sed -i 's/{{imageName}}/${PROJECT_NAME}/g' docker-compose.yml"
+			sh "sed -i 's/{{containerName}}/${PROJECT_NAME}/g' docker-compose.yml"
+		}
+	  }
+	}
+	stage('docker build and push') {
+	  steps {
+		dir("${PROJECT_NAME}") {
+			dockerBuildAndPush()
+		}
+	  }
+	  post {
+		success {
+		  dir("${PROJECT_NAME}") {
+			sh 'sh cleanup.sh "${DOCKER_HUB_REPO}/${DOCKER_HUB_REPO_NAMESPACE}${ENV}"/"${PROJECT_NAME}"'
+		  }
+		}
+	  }
+	}
+  }
+  post {
+	success {
+	  echo '构建完成'
+	  appendReadMe()
+	}
+	failure {
+	  sh 'echo "构建失败，详情请查看$WORKSPACE"'			// 构建失败，这里使用sh是因为echo不支持使用参数
+	}
+	aborted {
+	  echo '构建被中止'
+	}
+  }
+}
+
+def dockerBuildAndPush() {
+  script {
+	  docker.withRegistry("${DOCKER_HUB_URL}", 'aliyun-docker-repo') {
+	  def tagImage = docker.build("${DOCKER_HUB_REPO}/${DOCKER_HUB_REPO_NAMESPACE}${ENV}/${params.PROJECT_NAME}:${BUILD_NUMBER}")
+	  def latestImage = docker.build("${DOCKER_HUB_REPO}/${DOCKER_HUB_REPO_NAMESPACE}${ENV}/${params.PROJECT_NAME}:latest")
+	  tagImage.push()
+	  latestImage.push()
+	  }
+  }
+}
+
+def appendReadMe() {
+    sh '''
+echo "
+docker image:       '"${DOCKER_HUB_REPO}"/"${DOCKER_HUB_REPO_NAMESPACE}""${ENV}"/"${PROJECT_NAME}":"${BUILD_NUMBER}"'
+docker image name:  '"${PROJECT_NAME}"'
+docker build env:   '"${ENV}"'
+docker image tag:   '"${BUILD_NUMBER}"'
+git branch:         '"${BRANCH}"'
+" >> README.docker-image.md
+	'''
+}

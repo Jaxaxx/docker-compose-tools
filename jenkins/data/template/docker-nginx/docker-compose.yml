@@ -1,0 +1,17 @@
+version: '3.9'
+services:
+  {{serverName}}:                        
+    restart: always                     
+    image: {{repoUrl}}/{{repoNamespace}}/{{repoEnv}}/{{imageName}}:latest
+    container_name: {{containerName}}
+    expose:
+      - 80
+    environment:
+      TZ: Asia/Shanghai
+    networks:
+      - custom_net                # 设置网卡
+
+networks:
+  custom_net:
+    external:
+      name: mynetwork

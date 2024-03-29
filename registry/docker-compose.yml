@@ -1,0 +1,36 @@
+version: '3.9'
+services:
+  registry:
+    image: registry:2
+    restart: always
+    container_name: registry
+    ports:
+      - "5000:5000"
+    environment:
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_PATH=/auth/passwd
+      - REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    volumes:
+      - ./passwd:/auth/passwd      
+      - ./data:/var/lib/registry
+    networks:
+      - custom_net
+  registry_web:
+    image: hyper/docker-registry-web 
+    restart: always
+    container_name: registry_web
+    ports:
+      - "5001:8080"
+    environment:
+      - REGISTRY_URL=http://registry:5000/v2            # 不能写外网地址
+      - REGISTRY_NAME=docker-registry.3hoursedu.cn      # 镜像仓库拼接的仓库地址前缀
+      - REGISTRY_BASIC_AUTH=ZGV2b3BzOjEyMzQ1Ng==
+      - REGISTRY_READONLY=false
+    networks:
+      - custom_net
+
+networks:
+  custom_net:
+    external: 
+      name: mynetwork

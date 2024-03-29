@@ -1,0 +1,19 @@
+version: '3.9'
+services:
+  nginx:
+    container_name: nginx
+    image: nginx
+    restart: always
+    ports:
+      - 8081:80
+      - 444:443
+    volumes:
+      - ./logs:/var/log/nginx
+      - ./conf.d:/etc/nginx/conf.d
+    networks:
+      - custom_net
+
+networks:
+  custom_net:
+    external:
+      name: mynetwork

@@ -1,0 +1,24 @@
+version: '3.9'
+services:
+  yearning:
+    image: chaiyd/yearning:latest
+    restart: always
+    container_name: yearning
+    environment:
+      MYSQL_USER: devops
+      MYSQL_PASSWORD: 123456
+      MYSQL_ADDR: mysql:3306
+      MYSQL_DB: devops_yearning
+      IS_DOCKER: is_docker
+    privileged: true
+    ports:
+      - 8000:8000
+    networks:
+      - custom_net
+    volumes:
+      - ./conf.toml:/opt/conf.toml
+
+networks:
+  custom_net:
+    external:
+      name: mynetwork

@@ -1,0 +1,10 @@
+[Mysql]
+Db = "devops_yearning"
+Host = "mysql"
+Port = "3306"
+Password = "123456"
+User = "root"
+
+[General]
+SecretKey = "aaaaaaaaaaaaaaaa"
+Hours = 4
