@@ -1,23 +1,54 @@
 version: '3'
 
 services:
-  confluence:
-    image: atlassian/confluence-server
-    container_name: confluence
-    ports:
-      - 8090:8090
-      - 8091:8091
+
+  db:
+    image: mysql:8.0.20
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_bin
+      - --transaction-isolation=READ-COMMITTED 
+      - --default-authentication-plugin=mysql_native_password
+    restart: always
+    container_name: wiki-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      TZ: Asia/Shanghai
+    expose:
+      - 3306
     networks:
       - custom_net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.port=8090"
-      - "traefik.frontend.rule=Host:${DOMAIN}"
-      - "traefik.frontend.entryPoints=http,https"
     volumes:
-      - ./data:/var/atlassian/application-data/confluence
+      - ./db-data:/var/lib/mysql
+
+  confluence:
+    image: atlassian/confluence-server
+    container_name: wiki-confluence
+    environment:
+      TZ: Asia/Shanghai
+    restart: always
+    ports:
+      - 8090:8090
+    networks:
+      - custom_net
+    volumes:
+      - ./confluence-data:/var/atlassian/application-data/
       - ./mysql-connector-java-8.0.20.jar:/opt/atlassian/confluence/confluence/WEB-INF/lib/mysql-connector-java-8.0.20.jar
-      
+
+  jira:
+    image: atlassian/jira-software
+    container_name: wiki-jira
+    environment:
+      TZ: Asia/Shanghai
+    restart: always
+    ports:
+      - 8092:8080
+    volumes:
+      - ./jira-data:/var/atlassian/application-data/
+      - ./mysql-connector-java-8.0.20.jar:/opt/atlassian/jira/lib/mysql-connector-java-8.0.20.jar
+    networks:
+      - custom_net
+
 networks:
   custom_net:
     external:
